@@ -112,6 +112,8 @@ export const useMaskEditorStore = defineStore('maskEditor', () => {
     }
   })
 
+  const isStagingMode = ref(false)
+
   function setBrushSize(size: number): void {
     brushSettings.value.size = _.clamp(size, 1, 500)
   }
@@ -206,6 +208,7 @@ export const useMaskEditorStore = defineStore('maskEditor', () => {
     panOffset.value = { x: 0, y: 0 }
     cursorPoint.value = { x: 0, y: 0 }
     maskOpacity.value = 0.8
+    isStagingMode.value = false
   }
 
   return {
@@ -251,6 +254,8 @@ export const useMaskEditorStore = defineStore('maskEditor', () => {
     canvasHistory,
 
     tgpuRoot,
+
+    isStagingMode,
 
     setBrushSize,
     setBrushOpacity,

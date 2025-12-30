@@ -6,9 +6,13 @@
         :key="tool"
         :class="[
           'maskEditor_toolPanelContainer hover:bg-secondary-background-hover',
-          { maskEditor_toolPanelContainerSelected: currentTool === tool }
+          { 
+            maskEditor_toolPanelContainerSelected: currentTool === tool,
+            'opacity-50 cursor-not-allowed': stagingActive
+          }
         ]"
-        @click="onToolSelect(tool)"
+        :style="{ pointerEvents: stagingActive ? 'none' : 'auto' }"
+        @click="!stagingActive && onToolSelect(tool)"
       >
         <div
           class="flex items-center justify-center"
@@ -16,6 +20,19 @@
         ></div>
         <div class="maskEditor_toolPanelIndicator"></div>
       </div>
+    </div>
+
+    <!-- Staging mode indicator -->
+    <div
+      v-if="stagingActive"
+      class="flex flex-col items-center px-2 py-3 mb-2 bg-blue-500/10 border border-blue-500/30 rounded-md"
+    >
+      <span class="text-xs text-blue-400 font-semibold text-center">
+        {{ t('maskEditor.stagingMode') }}
+      </span>
+      <span class="text-xs text-blue-300 text-center mt-1">
+        {{ t('maskEditor.toolsDisabled') }}
+      </span>
     </div>
 
     <div
@@ -39,13 +56,15 @@ import { allTools } from '@/extensions/core/maskeditor/types'
 import { t } from '@/i18n'
 import { useMaskEditorStore } from '@/stores/maskEditorStore'
 
-const { toolManager } = defineProps<{
+const { toolManager, stagingActive } = defineProps<{
   toolManager: ReturnType<typeof useToolManager>
+  stagingActive?: boolean
 }>()
 
 const store = useMaskEditorStore()
 
 const onToolSelect = (tool: Tools) => {
+  if (stagingActive) return
   toolManager.switchTool(tool)
 }
 

@@ -42,6 +42,19 @@
         <button :class="textButtonClass" @click="onClear">
           {{ t('maskEditor.clear') }}
         </button>
+
+        <button :class="textButtonClass" @click="triggerImageUpload">
+          {{ t('maskEditor.uploadImage') }}
+        </button>
+
+        <!-- Hidden file input -->
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept="image/*"
+          class="hidden"
+          @change="handleImageUpload"
+        />
       </div>
     </div>
 
@@ -64,6 +77,7 @@ import { ref } from 'vue'
 import Button from '@/components/ui/button/Button.vue'
 import { useCanvasTools } from '@/composables/maskeditor/useCanvasTools'
 import { useMaskEditorSaver } from '@/composables/maskeditor/useMaskEditorSaver'
+import { useStagingManager } from '@/composables/maskeditor/useStagingManager'
 import { t } from '@/i18n'
 import { useDialogStore } from '@/stores/dialogStore'
 import { useMaskEditorStore } from '@/stores/maskEditorStore'
@@ -117,5 +131,29 @@ const handleSave = async () => {
 
 const handleCancel = () => {
   dialogStore.closeDialog({ key: 'global-mask-editor' })
+}
+
+const fileInputRef = ref<HTMLInputElement>()
+const stagingManager = useStagingManager()
+
+const triggerImageUpload = () => {
+  fileInputRef.value?.click()
+}
+
+const handleImageUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const clipboardData = new DataTransfer()
+  clipboardData.items.add(file)
+
+  const pasteEvent = new ClipboardEvent('paste', {
+    clipboardData: clipboardData as any
+  })
+
+  await stagingManager.handlePaste(pasteEvent)
+
+  input.value = ''
 }
 </script>

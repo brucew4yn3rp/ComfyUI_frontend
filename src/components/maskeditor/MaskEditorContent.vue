@@ -34,6 +34,7 @@
           'z-40': store.activeLayer === 'mask'
         }"
       />
+      <!-- Staging canvas will be created dynamically by stagingManager -->
       <div ref="canvasBackgroundRef" class="bg-white w-full h-full" />
     </div>
 
@@ -43,23 +44,29 @@
           v-if="initialized"
           ref="toolPanelRef"
           :tool-manager="toolManager!"
+          :staging-active="store.isStagingMode"
         />
 
         <PointerZone
           v-if="initialized"
           :tool-manager="toolManager!"
           :pan-zoom="panZoom!"
+          :staging-manager="stagingManager"
         />
 
         <SidePanel
           v-if="initialized"
           ref="sidePanelRef"
           :tool-manager="toolManager!"
+          :staging-manager="stagingManager"
         />
       </div>
     </div>
 
-    <BrushCursor v-if="initialized" :container-ref="containerRef" />
+    <BrushCursor
+      v-if="initialized && !store.isStagingMode"
+      :container-ref="containerRef"
+    />
   </div>
 </template>
 
@@ -70,6 +77,7 @@ import { useImageLoader } from '@/composables/maskeditor/useImageLoader'
 import { useKeyboard } from '@/composables/maskeditor/useKeyboard'
 import { useMaskEditorLoader } from '@/composables/maskeditor/useMaskEditorLoader'
 import { usePanAndZoom } from '@/composables/maskeditor/usePanAndZoom'
+import { useStagingManager } from '@/composables/maskeditor/useStagingManager'
 import { useToolManager } from '@/composables/maskeditor/useToolManager'
 import type { LGraphNode } from '@/lib/litegraph/src/litegraph'
 import { useDialogStore } from '@/stores/dialogStore'
@@ -106,6 +114,7 @@ const initialized = ref(false)
 
 const keyboard = useKeyboard()
 const panZoom = usePanAndZoom()
+const stagingManager = useStagingManager()
 
 const toolManager = useToolManager(keyboard, panZoom)
 
@@ -114,6 +123,19 @@ let resizeObserver: ResizeObserver | null = null
 const handleDragStart = (event: DragEvent) => {
   if (event.ctrlKey) {
     event.preventDefault()
+  }
+}
+
+// Keyboard handlers for staging mode
+const handleKeyDown = (event: KeyboardEvent) => {
+  if (!store.isStagingMode) return
+
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    stagingManager.accept()
+  } else if (event.key === 'Escape') {
+    event.preventDefault()
+    stagingManager.cancel()
   }
 }
 
@@ -179,10 +201,20 @@ const initUI = async () => {
 onMounted(() => {
   keyboard.addListeners()
 
+  // Add paste listener
+  document.addEventListener('paste', stagingManager.handlePaste)
+
+  // Add keyboard listener for staging mode
+  document.addEventListener('keydown', handleKeyDown)
+
   if (containerRef.value) {
     resizeObserver = new ResizeObserver(async () => {
       if (panZoom) {
         await panZoom.invalidatePanZoom()
+      }
+      // Re-render staging if active
+      if (store.isStagingMode) {
+        stagingManager.renderStaging()
       }
     })
     resizeObserver.observe(containerRef.value)
@@ -195,6 +227,17 @@ onBeforeUnmount(() => {
   toolManager.brushDrawing.saveBrushSettings()
 
   keyboard?.removeListeners()
+
+  // Remove paste listener
+  document.removeEventListener('paste', stagingManager.handlePaste)
+
+  // Remove keyboard listener
+  document.removeEventListener('keydown', handleKeyDown)
+
+  // Cancel any active staging
+  if (store.isStagingMode) {
+    stagingManager.cancel()
+  }
 
   if (resizeObserver) {
     resizeObserver.disconnect()
