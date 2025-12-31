@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useMaskEditorStore } from '@/stores/maskEditorStore'
 
-export interface StagingImage {
+interface StagingImage {
   img: HTMLImageElement
   x: number // Canvas coordinates
   y: number // Canvas coordinates
@@ -11,7 +11,7 @@ export interface StagingImage {
   opacity: number
 }
 
-export interface StagingHandle {
+interface StagingHandle {
   type: 'corner' | 'edge' | 'rotate' | 'move'
   position:
     | 'nw'
